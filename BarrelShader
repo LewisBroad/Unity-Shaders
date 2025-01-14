@@ -1,0 +1,67 @@
+Shader "Custom/Barrel Shader"
+{
+    Properties
+    {
+        _MainTex ("Texture", 2D) = "white"{} // Texture property
+        _NormalMap ("Normal Map", 2D) = "bump"{} // Normal map property
+        _Glossiness ("Glossiness", Range (0.1, 1)) = 1 // Glossiness property
+        _RustTexture ("Rust Texture", 2D) = "white" {} // Rust texture property
+        _RustAmount ("Rust Amount", Range(0, 1)) = 0 // Rust amount property
+        _RustSpeed ("Rust Speed", Range(0, 1)) = 0.1 // Rust speed property
+    }
+
+    SubShader
+    {
+        Tags { "RenderType"="Opaque" }
+        LOD 200
+
+        CGPROGRAM
+        #pragma surface surf Standard
+
+
+        struct Input
+        {
+            float2 uv_MainTex; // main texture input
+            float2 uv_RustTexture; //rusting texture input
+        };
+
+        //declaring variables
+        sampler2D _MainTex;
+        sampler2D _NormalMap;
+        sampler2D _RustTexture;
+        float _Glossiness;
+        float _RustAmount;
+        float _RustSpeed;
+
+
+        void surf (Input IN, inout SurfaceOutputStandard o)
+        {
+
+            fixed4 baseColour = tex2D (_MainTex, IN.uv_MainTex);  //main texture for base colour
+            o.Albedo = baseColour.rgb;             // Albedo comes from the main texture
+
+            o.Normal = UnpackNormal(tex2D(_NormalMap, IN.uv_MainTex));   // Normal mapping
+
+           float GlossinessSpeed = _RustSpeed; // GlossinessSpeed is equal to the rust speed.
+
+           fixed4 rustColour = tex2D(_RustTexture, IN.uv_RustTexture); //get the rusts colour
+
+           fixed4 RustAmount = _RustAmount + (_RustSpeed * _Time.y); // rust amount variable calculated from the rust amount property, speed and time.
+           RustAmount = clamp(RustAmount, 0.1, 1 ); // the clamp funtion keeps the variables between to values.
+           fixed4 Glossiness = _Glossiness - (GlossinessSpeed * _Time.y); // glossiness is depleted over time
+           Glossiness = clamp(Glossiness, 0.1, 1); // the clamp function doing the same above but for the glossiness
+
+           fixed4 finalColour = lerp(baseColour, rustColour, RustAmount); // the final colour is using the lerp node used for changing the textures. A is the starter as the rust amount gets higher(T), it changes towards B.
+           
+
+            o.Albedo *= finalColour.rgb; // outputs the final colour. overlapping the two textures.
+            o.Smoothness = Glossiness; // outputs the glossiness
+            
+        }
+
+
+        ENDCG
+    }
+
+    FallBack "Diffuse"
+}
