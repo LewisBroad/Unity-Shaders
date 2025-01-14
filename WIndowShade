@@ -1,0 +1,63 @@
+Shader "Custom/WIndowShader"
+{
+    Properties
+    {
+	    _MainTex("Colour Texture", 2D) = "white" {} //main texture applied. in this case, a camera.
+        _Transparancy("Transparancy Value", Range (0,1)) = 0.5 //Transparancy of the object
+        _Cubemap ("CubeMap", CUBE) = ""{} // starting cubemap. will be skyline
+        _ReflectAmountOutdoor("Reflection Amount", Range(0.1,1)) = 0.5 //outdoor cubemap reflection
+        _CubeMapIndoor ("CubeMap Indoor", CUBE) = ""{} //indoor cubemap
+        _ReflectAmountIndoors("Reflection Amount", Range(0.1,1)) = 0.5 // reflection for the "indoor" cubemap
+        _MainTint("Diffuse Tint", Color) = (1,1,1,1) // used with mapping the main textures colour
+        _cameraReflect("Camera Reflection", Range (0.1, 1)) = 0.5 //essentially how visable the camera overlays the texture
+
+
+    }
+    SubShader
+    {
+        Tags { "RenderType"="Transparent" }
+        LOD 100
+
+        CGPROGRAM
+        #pragma surface surf Lambert alpha
+        #pragma target 3.0
+
+
+        // defining all the properties
+		float4 _MainTint;
+		sampler2D _MainTex;
+        float _Transparancy;
+		samplerCUBE _Cubemap;
+		float _ReflectAmountOutdoor;
+        samplerCUBE _CubeMapIndoor;
+        float _ReflectAmountIndoors;
+        float _cameraReflect;
+
+
+		struct Input {
+			float2 uv_MainTex;
+			float3 worldRefl; //world Reflection
+            float3 worldPos; //position of the camera
+		};
+
+
+
+        void surf (Input IN, inout SurfaceOutput o) {
+
+            float dist = distance(_WorldSpaceCameraPos, IN.worldPos); // adds a float for the distance the camera is to the shader.
+            float maxDistance = 1.0; // how close the camera is to switch to the other cube map
+            if (dist > maxDistance){ //checks if the camera is far enough away for a reflection.
+                	o.Emission = texCUBE(_Cubemap, IN.worldRefl).rgb * _ReflectAmountOutdoor; //outputs the outdoor reflection
+                }
+                else{
+	        o.Emission = texCUBE(_CubeMapIndoor, IN.worldRefl).rgb * _ReflectAmountIndoors; //outputs the indoor texture
+            }
+            half4 c = tex2D(_MainTex, IN.uv_MainTex) * _MainTint * _cameraReflect; // having the main texture applied at the bottom means that it is thought about last. it wont override all the other textures.
+	        o.Albedo = c.rgb;
+	        o.Alpha = _Transparancy; // allows the user to control using the Transparancy slider.
+        }
+
+        ENDCG
+    }
+    FallBack "Diffuse"
+}
