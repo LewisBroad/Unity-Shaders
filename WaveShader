@@ -1,0 +1,50 @@
+Shader "Custom/WaveShader"{
+    Properties {
+        _Texture("Base(RGB)", 2D) = "white"{} //used for the wave texture
+        _Frequency("Frequency", Range(0, 10)) = 5 //how far apart the waves are
+        _Amplitude("Wave Amplitude", Range(0,1)) = 1 //how high the waves are
+        _ScrollYSpeed("Scroll Y Speed", range(-10.0, 10.0)) = 2 //how fast the texture "Scrolls" on the y axis
+        _ScrollXSpeed("Scroll X Speed", range(-10.0, 10.0)) = 2 //how fast the texture "scrolls" on the x axis
+    }
+    SubShader {
+        Tags { "RenderType"="Opaque" }
+        LOD 200
+        
+        CGPROGRAM
+        #pragma surface surf Lambert vertex:vert //shader being used
+        #pragma target 3.0
+
+        //decaring variables
+        sampler2D _Texture; 
+        float _Frequency;
+        float _Amplitude;
+        float _ScrollYSpeed;
+        float _ScrollXSpeed;
+
+        struct Input {
+            float2 uv_Texture; //input is the texture
+        };
+
+        void vert(inout appdata_full v, out Input o){
+            UNITY_INITIALIZE_OUTPUT(Input,o);
+            float time = _Time * _Frequency; //time times frequency. used to determine the waves visual frequency
+            float offset = v.vertex.x; //offsetting the x axis
+            float offsetz = v.vertex.z; //offsets the z axis. allows for more realistic waves
+            float height = sin(time + offset + offsetz) * _Amplitude; //calculating the height based on the time and offset * sin, * by the amplitude.
+            v.vertex.xyz = float3(v.vertex.x, v.vertex.y + height, v.vertex.z); //this outputs the xyz vertex. only really changing the y axis.
+            }
+
+        void surf (Input IN, inout SurfaceOutput o) {
+            fixed2 scrolledUV = IN.uv_Texture; //variable holds the textures uv values
+            
+            fixed xScrollValue = _ScrollXSpeed * _Time; //sets the scroll value of x to be the speed times time
+            fixed yScrollValue = _ScrollYSpeed * _Time; //sets the scorll value of y to be the speed time time.
+            scrolledUV += fixed2(xScrollValue, yScrollValue); // this applies the offset of the texure. allowing the moving illusion
+
+            half4 c = tex2D(_Texture, scrolledUV); // takes the texture colour
+            o.Albedo = c.rgb; //outputs the texture colour
+        }
+        ENDCG
+    } 
+    FallBack "Diffuse"
+}
