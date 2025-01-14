@@ -1,0 +1,43 @@
+Shader "Custom/Dissolve"
+{
+    Properties
+    {
+        _Colour("Colour", Color) = (1,1,1,1) // colour for the mesh
+        _MainTex("Albedo (RGB)", 2D) = "white" {} //texture for the mesh
+        _DissolveMap("Dissolve Map", 2D) = "white" {} //texture mapping for disolving
+        _DissolveAmount("Dissolve Amount" , Range (0, 1)) = 0.1 //disolve amount
+    }
+    SubShader
+    {
+        Tags { "RenderType"="Opaque" }
+        LOD 200
+
+        CGPROGRAM
+        #pragma surface surf Standard //unity standard lighting model
+
+        #pragma target 3.0 //unity targets its 3.0 shader model
+
+        half _DissolveAmount; //medium precision float
+        sampler2D _DissolveMap; //2d texture for the disolve effect
+        sampler2D _MainTex; //2D texture for the mesh
+
+        struct Input
+        {
+            float2 uv_MainTex;
+        };
+
+        fixed4 _Colour; //fixed point values for colours. r,g,b,a
+
+
+        void surf (Input IN, inout SurfaceOutputStandard o)
+        {
+
+            fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Colour; // Albedo comes from a texture tinted by color
+            o.Albedo = c.rgb; //outputs colour on the shape
+            half4 dissolve = tex2D(_DissolveMap, IN.uv_MainTex); //medium precision 4D vector for the texture 
+            clip(dissolve.r - _DissolveAmount); //clip makes sure the pixels below the dissolve amount threshold are not drawn. It takes from the “red” of the dissolve function. Essentially a normal map.
+        }
+        ENDCG
+    }
+    FallBack "Diffuse"
+}
